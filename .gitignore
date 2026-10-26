@@ -1,0 +1,9 @@
+# Dependencies and logs
+node_modules/
+*.log
+
+# Local secrets or tool config (never commit keys)
+.env
+.env.*
+.clasp.json
+.clasprc.json

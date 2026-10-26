@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 13px; line-height: 1.5; color: #202124; margin: 0; }
+    h3 { font-size: 14px; margin: 16px 0 4px; }
+    ol { padding-left: 18px; margin: 4px 0; }
+    label { display: block; margin-top: 8px; font-weight: bold; }
+    input[type=text], input[type=password] { width: 100%; box-sizing: border-box; padding: 6px; font-size: 13px; }
+    .uri { display: flex; gap: 6px; }
+    .uri input { flex: 1; font-family: monospace; font-size: 12px; }
+    .ok { color: #188038; font-weight: normal; }
+    .hint { color: #5f6368; font-weight: normal; }
+    button { margin-top: 12px; padding: 8px 16px; font-size: 13px; cursor: pointer; }
+    #connect { display: none; margin-top: 12px; padding: 12px; background: #e6f4ea; border-radius: 6px; }
+    #connect a { font-weight: bold; font-size: 14px; }
+    #msg { margin-top: 8px; color: #d93025; }
+  </style>
+</head>
+<body>
+  <h3>1. Make a Spotify app (one time)</h3>
+  <ol>
+    <li>Go to <a href="https://developer.spotify.com/dashboard" target="_blank">developer.spotify.com/dashboard</a>, log in, and click <b>Create app</b>.</li>
+    <li>Any name and description. Under <b>Redirect URIs</b>, paste this and click Add:
+      <div class="uri"><input id="uri" type="text" readonly value="<?= redirectUri ?>"><button type="button" style="margin:0" onclick="copyUri()">Copy</button></div>
+    </li>
+    <li>Tick <b>Web API</b>, agree to the terms, and save.</li>
+    <li>Open the app's <b>Settings</b> and copy the Client ID and Client secret into the boxes below.</li>
+  </ol>
+
+  <label>Spotify Client ID <span class="hint" id="s-id"></span></label>
+  <input id="clientId" type="text" autocomplete="off">
+  <label>Spotify Client secret <span class="hint" id="s-secret"></span></label>
+  <input id="clientSecret" type="password" autocomplete="off">
+
+  <h3>2. Free Gemini API key (recommended)</h3>
+  <div class="hint">Lets the script understand messy emails, for free. Go to
+    <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>, sign in with Google,
+    click <b>Create API key</b>, and paste it here. No credit card needed.
+    Without a key the script guesses one song per line or sentence and you fix more by hand.</div>
+  <label>Gemini API key <span class="hint" id="s-gemini"></span></label>
+  <input id="geminiKey" type="password" autocomplete="off">
+
+  <details style="margin-top:10px">
+    <summary class="hint" style="cursor:pointer">Use Claude instead (paid, a few cents per run)</summary>
+    <div class="hint">If a Claude key is saved it's used instead of Gemini. Get one at
+      <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>.</div>
+    <label>Claude API key <span class="hint" id="s-claude"></span></label>
+    <input id="claudeKey" type="password" autocomplete="off">
+    <label class="hint" id="rm-claude" style="display:none;font-weight:normal"><input type="checkbox" id="removeClaude"> Remove the saved Claude key (go back to Gemini)</label>
+  </details>
+
+  <button id="save" onclick="save()">Save</button>
+  <div id="msg"></div>
+
+  <div id="connect">
+    <h3 style="margin-top:0">3. Connect your Spotify account</h3>
+    <a id="authLink" href="#" target="_blank">Connect Spotify →</a>
+    <div class="hint">Opens a new tab. Approve it, close that tab, and you're done.</div>
+  </div>
+
+  <script>
+    const initial = <?!= JSON.stringify(status) ?>;
+
+    function show(status) {
+      const saved = '<span class="ok">✓ saved - leave blank to keep</span>';
+      document.getElementById('s-id').innerHTML = status.hasClientId ? saved : '';
+      document.getElementById('s-secret').innerHTML = status.hasSecret ? saved : '';
+      document.getElementById('s-gemini').innerHTML = status.hasGemini ? saved : '';
+      document.getElementById('s-claude').innerHTML = status.hasClaude ? saved : '';
+      document.getElementById('rm-claude').style.display = status.hasClaude ? 'block' : 'none';
+      document.getElementById('removeClaude').checked = false;
+      if (status.authUrl) {
+        document.getElementById('authLink').href = status.authUrl;
+        document.getElementById('authLink').textContent =
+          status.spotifyConnected ? 'Spotify is connected ✓ (click to reconnect)' : 'Connect Spotify →';
+        document.getElementById('connect').style.display = 'block';
+      }
+    }
+
+    function save() {
+      const btn = document.getElementById('save');
+      btn.disabled = true;
+      document.getElementById('msg').textContent = '';
+      google.script.run
+        .withSuccessHandler(status => {
+          btn.disabled = false;
+          ['clientId', 'clientSecret', 'geminiKey', 'claudeKey'].forEach(id => document.getElementById(id).value = '');
+          show(status);
+          if (!status.authUrl) document.getElementById('msg').textContent = 'Add both the Spotify Client ID and secret.';
+        })
+        .withFailureHandler(err => {
+          btn.disabled = false;
+          document.getElementById('msg').textContent = err.message;
+        })
+        .saveSetup({
+          clientId: document.getElementById('clientId').value,
+          clientSecret: document.getElementById('clientSecret').value,
+          geminiKey: document.getElementById('geminiKey').value,
+          claudeKey: document.getElementById('claudeKey').value,
+          removeClaude: document.getElementById('removeClaude').checked,
+        });
+    }
+
+    function copyUri() {
+      const el = document.getElementById('uri');
+      el.select();
+      document.execCommand('copy');
+    }
+
+    show(initial);
+    if (initial.hasClientId && initial.hasSecret) {
+      // Already set up: get a fresh sign-in link without changing anything.
+      google.script.run.withSuccessHandler(show)
+        .saveSetup({ clientId: '', clientSecret: '', geminiKey: '', claudeKey: '', removeClaude: false });
+    }
+  </script>
+</body>
+</html>
