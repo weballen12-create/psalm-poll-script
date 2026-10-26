@@ -2,12 +2,12 @@
 
 An automation that turns emailed song suggestions into a Spotify playlist and a
 Google Forms poll, with a results chart that updates live as people vote.
-Built for a music club's song selection, it saves the club's leadership about
-**15 hours per semester**.
+Built for a music club's song selection, it saves the club's leadership
+**15+ hours per semester**.
 
 | | Per poll | Per semester (6 polls) |
 |---|---|---|
-| Before (by hand) | 2–3 hours | 12–18 hours |
+| Before: Spotify, Apple Music and Amazon Music playlists plus a Google Form, all by hand | about 3 hours | about 18 hours |
 | Now | about 2 minutes | about 12 minutes |
 
 ## What it does
